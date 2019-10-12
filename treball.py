@@ -1,15 +1,18 @@
 import matplotlib.pyplot as plt
 from distribucions import *
+import pandas as pd
 
-MOSTRES = 100  # Nombre de mostres/sistemes
+
+MOSTRES = 1  # Nombre de mostres/sistemes
 USERS = 50  # Nombre d'usuaris
 WARMUP = 100  # Temps de warm up (hores)
-DELTA = 1  # Temps de mostra (minuts)
+DELTA = 100  # Temps de simulacio (minuts)
+GET_INFORMATION = 1 * 60 # Temps de mostreig (segons)
 
 ESCRIURE_U = 0  # Mostra estat de l'usuari (1:SI, 0:NO)
 ESCRIURE_S = 0  # Mostra estat del sistema (1:SI, 0:NO)
-ESCRIURE_M = 1  # Mostra estat de la simulacio (1:SI, 0:NO)
-GRAFICAR = 1  # Veure grafica final (1:SI, 0:NO)
+ESCRIURE_M = 0  # Mostra estat de la simulacio (1:SI, 0:NO)
+GRAFICAR = 0  # Veure grafica final (1:SI, 0:NO)
 BINS = 0  # Nombre de barres de la grafica (>=10:ON, <10:OFF)
 
 WARMUP_testing = 0  # Calcul de warm up (1:SI, 0:NO)
@@ -17,49 +20,84 @@ WARMUP_testing = 0  # Calcul de warm up (1:SI, 0:NO)
 
 # Simula MOSTRES xarxes/sistemes
 def Simular():
-    sData = []
+
+    if not WARMUP_testing:
+        frames = []
+
     for s in range(1, MOSTRES + 1):
+        
+        # Nova Mostra
         newData = SimularSistema()
+        
         if WARMUP_testing:
+
+            sData = []
             if sData:
                 sData = [(sData[i] + newData[i]) for i in range(len(newData))]
             else:
                 sData = newData
         else:
-            sData += [newData]
+            frames.append(pd.DataFrame(newData))
 
         if ESCRIURE_M:
             print("\n\n\n\n####################\t" + str(s) + "\n")
-    return sData
+    
+    if WARMUP_testing:
+        return sData
+
+    return frames
 
 
 # Simula USERS usuaris en 1 xarxa/sistema
 def SimularSistema():
-    uData = []
+
     for u in range(1, USERS + 1):
-        newData = SimularUsuario()
+
+        # Nou Usuari
+        newData = SimularUsuari()
+        
         if WARMUP_testing:
+
+            uData = []
             if uData:
                 uData = [(uData[i] + newData[i]) for i in range(len(newData))]
             else:
                 uData = newData
+
         else:
-            if uData:
-                uData += newData
-            else:
-                uData = newData
+            informacio_usuaris = dict()
+
+            informacio_usuaris["Usuaris Online"] = [0] * int((DELTA * 60) / GET_INFORMATION)
+            for it in range(len(newData["esOnline"])):
+                informacio_usuaris["Usuaris Online"][it] = newData["esOnline"][it] 
+
+            informacio_usuaris["Messatges Enviats"] = [0] * int((DELTA * 60) / GET_INFORMATION)
+            for it in range(len(newData["msgEnviats"])):
+                informacio_usuaris["Messatges Enviats"][it] = newData["msgEnviats"][it]
+
+            informacio_usuaris["Temps (min)"] = [i * GET_INFORMATION for i in range(1, int((DELTA * 60) / GET_INFORMATION))]
+
         if ESCRIURE_S:
             print("-----\t" + str(u))
-    return uData
+    
+    if WARMUP_testing:
+        return uData
+    else:
+        informacio_usuaris
 
+
+##########
+# USUARI #
+##########
 
 # Simula 1 usuari
-def SimularUsuario():
+def SimularUsuari():
 
     global rellotge
     global cuaEnviament
     global vWarmUp
-    global enviat
+    global msgEnviats
+    global informacio
 
     iniciar_variables()
 
@@ -80,16 +118,19 @@ def SimularUsuario():
             E_salida()
         elif tipus_E == "Test":
             E_sincron()
+        elif tipus_E == "Mostreig":
+            E_mostreig()
 
         esdeveniment = gen_E()
         if ESCRIURE_U:
             escriure_informacio(cuaEnviament, esdeveniment)
 
     if ESCRIURE_S:
-        print("Enviats:\t" + str(enviat))
+        print("Enviats:\t" + str(msgEnviats))
     if WARMUP_testing:
         return vWarmUp
-    return enviat
+
+    return informacio
 
 
 # Defineix l'estat inicial
@@ -102,23 +143,37 @@ def iniciar_variables():
     global rellotge
     global cuaEnviament
     global online
-    global enviat
+    global msgEnviats
+    global informacio
 
+    # Estats Inicials:
     v_events = []
     vWarmUp = []
+    
     minim_temps = 3600 * WARMUP
     maxim_temps = minim_temps + 60 * DELTA
-    
     rellotge = 0.0
     cuaEnviament = 0
-    online = 1
-    enviat = 0
 
+    online = 1
+    msgEnviats = 0
+
+    # Estructura per emmagatzemar informacio
+    informacio = dict()
+    informacio["esOnline"] = []
+    informacio["msgEnviats"] = []
+
+    # Esdeveniments Inicials:
     add_E_offline(rellotge)
     add_E_entrada(rellotge)
+    add_E_mostreig(rellotge)
     if WARMUP_testing:
         add_E_sincron(rellotge)
 
+
+####################
+# PROCESSAR EVENTS #
+####################
 
 # Procesa una entrada (escritura de missatge)
 def E_entrada():
@@ -139,11 +194,11 @@ def E_salida():
     global cuaEnviament
     global rellotge
     global minim_temps
-    global enviat
+    global msgEnviats
 
     cuaEnviament -= 1
     if rellotge >= minim_temps:
-        enviat += 1
+        msgEnviats += 1
     if cuaEnviament:
         add_E_salida(rellotge)
 
@@ -194,6 +249,22 @@ def E_sincron():
     vWarmUp += [online]
     add_E_sincron(rellotge)
 
+# Recupara dades usuari
+def E_mostreig():
+    
+    global online
+    global rellotge
+    global informacio
+
+    informacio["esOnline"].append(online)
+    informacio["msgEnviats"].append(msgEnviats)
+
+    add_E_mostreig(rellotge)
+
+
+######################
+# ESTADISTICA EVENTS #
+######################
 
 # Crea una entrada al dispositiu (escritura de missatge)
 def add_E_entrada(rellotge):
@@ -256,6 +327,20 @@ def add_E_sincron(rellotge):
     E = (temps_E, tipus_E)
     v_events += [E]
 
+# Crea un esdeveniment de mostreig
+def add_E_mostreig(rellotge):
+
+    global v_events
+
+    temps_E = rellotge + GET_INFORMATION
+    tipus_E = 'Mostreig'
+    E = (temps_E, tipus_E)
+    v_events += [E]
+
+
+############
+# FUNC AUX #
+############
 
 # Comprova si se supera el temps maxim
 def muere(esdeveniment):
@@ -291,20 +376,19 @@ def escriure_informacio(cuaEnviament, esdeveniment):
             v_print))
 
 
-# MAIN
+########
+# MAIN #
+########
 
 if __name__ == "__main__":
 
-    v = Simular()
+    resultat = Simular()
 
-    if GRAFICAR and WARMUP_testing:
-        plt.plot(v)
-        plt.show()
+    if WARMUP_testing:
+        if GRAFICAR:
+            plt.plot(resultat)
+            plt.show()
 
-    elif GRAFICAR and BINS > 10:
-        plt.hist(v, bins=BINS)
-        plt.show()
-
-    elif GRAFICAR:
-        plt.hist(v)
-        plt.show()
+    else:
+        for frame in resultat:
+            print(frame)
