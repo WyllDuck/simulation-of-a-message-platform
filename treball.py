@@ -8,7 +8,7 @@ Version: 2
 '''
 
 import matplotlib.pyplot as plt
-from Distribucions import *
+from distribucions import *
 
 MOSTRES = 100  # Nombre de mostres/sistemes
 USERS = 50  # Nombre d'usuaris
@@ -117,6 +117,7 @@ def iniciar_variables():
     vWarmUp = []
     minim_temps = 3600 * WARMUP
     maxim_temps = minim_temps + 60 * DELTA
+    
     rellotge = 0.0
     cuaEnviament = 0
     online = 1
