@@ -1,12 +1,3 @@
-'''
-Version: 2
-    + Warm up
-    + Warm up testing
-    + Multi-usuario
-    + Multi-sistema
-    + Graphical
-'''
-
 import matplotlib.pyplot as plt
 from distribucions import *
 
