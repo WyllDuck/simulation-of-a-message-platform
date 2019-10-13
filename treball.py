@@ -51,6 +51,12 @@ def Simular():
 # Simula USERS usuaris en 1 xarxa/sistema
 def SimularSistema():
 
+    # Emmagatzemar Informacio
+    informacio_usuaris = dict()
+    informacio_usuaris["Usuaris Online"] = [0] * int((DELTA * 60) / GET_INFORMATION)
+    informacio_usuaris["Messatges Enviats"] = [0] * int((DELTA * 60) / GET_INFORMATION)
+    informacio_usuaris["Temps (min)"] = [i * GET_INFORMATION for i in range(1, int((DELTA * 60) / GET_INFORMATION) + 1)]
+
     for u in range(1, USERS + 1):
 
         # Nou Usuari
@@ -65,17 +71,12 @@ def SimularSistema():
                 uData = newData
 
         else:
-            informacio_usuaris = dict()
 
-            informacio_usuaris["Usuaris Online"] = [0] * int((DELTA * 60) / GET_INFORMATION)
             for it in range(len(newData["esOnline"])):
-                informacio_usuaris["Usuaris Online"][it] = newData["esOnline"][it] 
+                informacio_usuaris["Usuaris Online"][it] += newData["esOnline"][it] 
 
-            informacio_usuaris["Messatges Enviats"] = [0] * int((DELTA * 60) / GET_INFORMATION)
             for it in range(len(newData["msgEnviats"])):
-                informacio_usuaris["Messatges Enviats"][it] = newData["msgEnviats"][it]
-
-            informacio_usuaris["Temps (min)"] = [i * GET_INFORMATION for i in range(1, int((DELTA * 60) / GET_INFORMATION))]
+                informacio_usuaris["Messatges Enviats"][it] += newData["msgEnviats"][it]
 
         if ESCRIURE_S:
             print("-----\t" + str(u))
@@ -83,7 +84,7 @@ def SimularSistema():
     if WARMUP_testing:
         return uData
     else:
-        informacio_usuaris
+        return informacio_usuaris
 
 
 ##########
@@ -255,9 +256,14 @@ def E_mostreig():
     global online
     global rellotge
     global informacio
+    global minim_temps
+    global msgEnviats
 
-    informacio["esOnline"].append(online)
-    informacio["msgEnviats"].append(msgEnviats)
+    if rellotge > minim_temps:
+        informacio["esOnline"].append(online)
+        informacio["msgEnviats"].append(msgEnviats)
+
+    msgEnviats = 0
 
     add_E_mostreig(rellotge)
 
