@@ -426,7 +426,7 @@ if __name__ == "__main__":
 
             for j in range(len(informacio_perUsuari[i])):
                 frame = informacio_perUsuari[i][j]
-                row = j*(len(informacio_perUsuari[i]) + 2)
+                row = j*(len(informacio_perUsuari[i][j]) + 2)
                 frame.to_excel(writer, sheet_name="usuaris", startrow = row)
 
     writer.save()
