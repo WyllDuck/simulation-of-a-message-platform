@@ -21,31 +21,44 @@ WARMUP_testing = 0  # Calcul de warm up (1:SI, 0:NO)
 # Simula MOSTRES xarxes/sistemes
 def Simular():
 
-    if not WARMUP_testing:
-        frames = []
+    if WARMUP_testing:
 
-    for s in range(1, MOSTRES + 1):
-        
-        # Nova Mostra
-        newData = SimularSistema()
-        
-        if WARMUP_testing:
+        sData = []
 
-            sData = []
+        for s in range(1, MOSTRES + 1):
+
+            # Nova Mostra        
+            newData = SimularSistema()
+
             if sData:
                 sData = [(sData[i] + newData[i]) for i in range(len(newData))]
             else:
                 sData = newData
-        else:
-            frames.append(pd.DataFrame(newData))
+        
+    else:
 
-        if ESCRIURE_M:
-            print("\n\n\n\n####################\t" + str(s) + "\n")
+        informacio_usuaris_M = []
+        informacio_perUsuari_M = [] 
+
+        for s in range(1, MOSTRES + 1):
+
+            # Nova Mostra        
+            informacio_usuaris, informacio_perUsuari = SimularSistema()
+
+            usuaris = []
+            for frame in informacio_perUsuari:
+                usuaris.append(pd.DataFrame(frame))
+            informacio_perUsuari_M.append(usuaris)
+            
+            informacio_usuaris_M.append(pd.DataFrame(informacio_usuaris))
+
+    if ESCRIURE_M:
+        print("\n\n\n\n####################\t" + str(s) + "\n")
     
     if WARMUP_testing:
         return sData
 
-    return frames
+    return informacio_usuaris_M, informacio_perUsuari_M
 
 
 # Simula USERS usuaris en 1 xarxa/sistema
@@ -56,6 +69,9 @@ def SimularSistema():
     informacio_usuaris["Usuaris Online"] = [0] * int((DELTA * 60) / GET_INFORMATION)
     informacio_usuaris["Messatges Enviats"] = [0] * int((DELTA * 60) / GET_INFORMATION)
     informacio_usuaris["Temps (min)"] = [i * GET_INFORMATION for i in range(1, int((DELTA * 60) / GET_INFORMATION) + 1)]
+
+    # Aqui guardem la informacio de cada usuari per separat
+    informacio_perUsuari = []
 
     for u in range(1, USERS + 1):
 
@@ -72,6 +88,9 @@ def SimularSistema():
 
         else:
 
+            newData["Usuari numero"] = [u for i in range(int((DELTA * 60) / GET_INFORMATION))]
+            informacio_perUsuari.append(newData)
+
             for it in range(len(newData["esOnline"])):
                 informacio_usuaris["Usuaris Online"][it] += newData["esOnline"][it] 
 
@@ -84,7 +103,7 @@ def SimularSistema():
     if WARMUP_testing:
         return uData
     else:
-        return informacio_usuaris
+        return informacio_usuaris, informacio_perUsuari
 
 
 ##########
@@ -388,13 +407,17 @@ def escriure_informacio(cuaEnviament, esdeveniment):
 
 if __name__ == "__main__":
 
-    resultat = Simular()
-
     if WARMUP_testing:
+    
+        resultat = Simular()
+    
         if GRAFICAR:
             plt.plot(resultat)
             plt.show()
 
     else:
-        for frame in resultat:
+
+        informacio_usuaris, informacio_perUsuari = Simular()
+
+        for frame in informacio_perUsuari:
             print(frame)
