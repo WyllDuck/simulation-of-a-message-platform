@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from distribucions import *
 import pandas as pd
+import xlsxwriter
 
 
 MOSTRES = 1  # Nombre de mostres/sistemes
@@ -68,7 +69,7 @@ def SimularSistema():
     informacio_usuaris = dict()
     informacio_usuaris["Usuaris Online"] = [0] * int((DELTA * 60) / GET_INFORMATION)
     informacio_usuaris["Messatges Enviats"] = [0] * int((DELTA * 60) / GET_INFORMATION)
-    informacio_usuaris["Temps (min)"] = [i * GET_INFORMATION for i in range(1, int((DELTA * 60) / GET_INFORMATION) + 1)]
+    informacio_usuaris["Temps (seg)"] = [i * GET_INFORMATION for i in range(1, int((DELTA * 60) / GET_INFORMATION) + 1)]
 
     # Aqui guardem la informacio de cada usuari per separat
     informacio_perUsuari = []
@@ -419,5 +420,15 @@ if __name__ == "__main__":
 
         informacio_usuaris, informacio_perUsuari = Simular()
 
-        for frame in informacio_perUsuari:
-            print(frame)
+        for i in range(len(informacio_usuaris)):
+            writer = pd.ExcelWriter('simulacions/model_{}.xlsx'.format(i), engine='xlsxwriter')
+            informacio_usuaris[i].to_excel(writer, sheet_name='usuaris acumulats')
+
+            for j in range(len(informacio_perUsuari[i])):
+                frame = informacio_perUsuari[i][j]
+                row = j*(len(informacio_perUsuari[i]) + 2)
+                frame.to_excel(writer, sheet_name="usuaris", startrow = row)
+
+    writer.save()
+
+    print("Fet")
