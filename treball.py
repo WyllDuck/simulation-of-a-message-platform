@@ -4,7 +4,7 @@ import pandas as pd
 import xlsxwriter
 
 
-MOSTRES = 5  # Nombre de mostres/sistemes
+MOSTRES = 100  # Nombre de mostres/sistemes
 USERS = 500  # Nombre d'usuaris
 WARMUP = 100  # Temps de warm up (hores)
 DELTA = 1  # Temps de simulacio (minuts)
@@ -12,7 +12,7 @@ GET_INFORMATION = 1 * 60 # Temps de mostreig (segons)
 
 ESCRIURE_U = 0  # Mostra estat de l'usuari (1:SI, 0:NO)
 ESCRIURE_S = 0  # Mostra estat del sistema (1:SI, 0:NO)
-ESCRIURE_M = 0  # Mostra estat de la simulacio (1:SI, 0:NO)
+ESCRIURE_M = 1  # Mostra estat de la simulacio (1:SI, 0:NO)
 GRAFICAR = 0  # Veure grafica final (1:SI, 0:NO)
 BINS = 0  # Nombre de barres de la grafica (>=10:ON, <10:OFF)
 
@@ -426,8 +426,8 @@ if __name__ == "__main__":
 
             for j in range(len(informacio_perUsuari[i])):
                 frame = informacio_perUsuari[i][j]
-                row = j*(len(informacio_perUsuari[i][j]) + 2)
-                frame.to_excel(writer, sheet_name="usuaris", startrow = row)
+                row = j*(len(informacio_perUsuari[i][j]))
+                frame.to_excel(writer, sheet_name="usuaris", startrow = row, header = 0)
 
             writer.save()
 
